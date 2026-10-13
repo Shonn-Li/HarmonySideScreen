@@ -442,7 +442,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "HarmonyScreen")
+            button.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "Harmony Side Screen")
         }
 
         // Items are rebuilt on every open (menuNeedsUpdate) so the menu always
@@ -1430,6 +1430,6 @@ extension AppDelegate: NSMenuDelegate {
         menu.addItem(settingsItem)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit HarmonyScreen", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Harmony Side Screen", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 }

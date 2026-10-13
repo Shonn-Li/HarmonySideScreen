@@ -1,7 +1,7 @@
 {
   "modelVersion": "5.0.0",
   "name": "harmonyscreen",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "license": "MIT",
   "author": "Shonn Li",
   "dependencies": {},

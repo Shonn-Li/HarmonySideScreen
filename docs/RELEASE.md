@@ -1,5 +1,28 @@
 # Release readiness
 
+## Harmony Side Screen 0.1.8 preview
+
+The project and app labels are now Harmony Side Screen, by YouWo.ai. The public
+repository is https://github.com/Shonn-Li/HarmonySideScreen; previous releases,
+MIT attribution, bundle identities and saved preferences are retained.
+
+Built and installed the Developer ID-signed Mac and private debug-signed Huawei
+0.1.8 on 2026-10-12. All 75 Swift tests and four portable C++ sanitizer test
+programs passed. Automatic HDC reconnect, the renamed native UI, persistent
+Settings access and full-resolution source/received images were checked. A
+one-pixel stripe sample retained near-full luminance contrast on the receiver.
+The current link independently reports 480 Mbps; earlier same-day 5 Gbps and
+367 Mbps payload measurements belong to a different observed link state and
+must not be relabelled as final-build measurements.
+
+Public release assets are the signed arm64 Mac DMG and SHA-256 checksum file.
+The native HAP remains private and device-specific. New settings prefer native
+2x HiDPI and high quality; existing saved settings are preserved. General large
+system-wide text with native 3K detail is still incomplete. See the exact
+[configuration/build record](versions/0.1.8.json), [history](VERSION-HISTORY.md)
+and [performance evidence](PERFORMANCE-2026-10-12.md). This is a developer preview,
+not an AppGallery release or a claim of sustained 120 Hz physical presentation.
+
 ## Mac and Huawei 0.1.7 preview
 
 Installed on the owner's Mac and authorized Mate XT 2 on 2026-10-09. Reconnect

@@ -127,7 +127,7 @@ struct SettingsView: View {
                     .onHover { headerHovered = $0 }
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("HarmonyScreen")
+                        Text("Harmony Side Screen")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                         Text("Turn your tablet into a second display")
                             .font(.system(size: 12, weight: .medium))
@@ -159,7 +159,7 @@ struct SettingsView: View {
                         Button("Cancel", role: .cancel) { }
                         Button("Reset", role: .destructive) {
                             settings.resetToDefaults()
-                            if let window = NSApp.windows.first(where: { $0.title == "HarmonyScreen" }) {
+                            if let window = NSApp.windows.first(where: { $0.title == "Harmony Side Screen" }) {
                                 window.center()
                             }
                         }
@@ -211,6 +211,10 @@ struct SettingsView: View {
                                 Toggle("Fit desktop to Huawei automatically", isOn: $settings.autoFitPhone)
                                 if settings.autoFitPhone {
                                     Toggle("Match Mac text size", isOn: $settings.matchMacScale)
+                                    Text(settings.matchMacScale
+                                         ? "Larger physical text may use a lower-resolution desktop stretched to the panel. For sharp large text, turn this off and use zoom inside the app."
+                                         : "Native 2× HiDPI keeps panel detail. Use zoom inside your app for larger, freshly rendered text.")
+                                        .font(.system(size: 11)).foregroundColor(.secondary)
                                     Text(settings.phoneSizeSummary).font(.system(size: 11)).foregroundColor(.secondary)
                                     Picker("Orientation", selection: $settings.phoneOrientation) {
                                         Text("Follow phone").tag("auto")
@@ -586,7 +590,7 @@ struct SettingsView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text("Launch at Login")
                                                 .font(.system(size: 12, weight: .medium))
-                                            Text("Run HarmonyScreen in the background automatically after you log in.")
+                                            Text("Run Harmony Side Screen in the background automatically after you log in.")
                                                 .font(.system(size: 10))
                                                 .foregroundColor(.secondary)
                                         }
@@ -1053,7 +1057,7 @@ struct SettingsView: View {
                                 }
                         }
                         .buttonStyle(.plain)
-                        .help("Quit HarmonyScreen (⌘Q)")
+                        .help("Quit Harmony Side Screen (⌘Q)")
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 14)
@@ -1343,7 +1347,7 @@ class DisplaySettings: ObservableObject {
 
     init() {
         self.autoFitPhone = defaults.object(forKey: keyPrefix + "autoFitPhone") as? Bool ?? true
-        self.matchMacScale = defaults.object(forKey: keyPrefix + "matchMacScale") as? Bool ?? true
+        self.matchMacScale = defaults.object(forKey: keyPrefix + "matchMacScale") as? Bool ?? false
         self.phoneOrientation = defaults.string(forKey: keyPrefix + "phoneOrientation") ?? "auto"
         self.placementSide = defaults.string(forKey: keyPrefix + "placementSide") ?? (defaults.integer(forKey: keyPrefix + "positionX") < 0 ? "left" : "right")
         self.placementAlignment = defaults.string(forKey: keyPrefix + "placementAlignment") ?? "start"
@@ -1351,7 +1355,7 @@ class DisplaySettings: ObservableObject {
         self.refreshRate = defaults.object(forKey: keyPrefix + "refreshRate") as? Int ?? 60  // Default: 60 — balanced for most tablets. 120 may saturate high-res panel pipelines.
         self.hiDPI = defaults.bool(forKey: keyPrefix + "hiDPI")
         self.bitrate = defaults.object(forKey: keyPrefix + "bitrate") as? Int ?? 1000  // Default: 1000 Mbps
-        self.quality = defaults.string(forKey: keyPrefix + "quality") ?? "ultralow"  // Default: fastest encoding
+        self.quality = defaults.string(forKey: keyPrefix + "quality") ?? "high"
         self.gamingBoost = defaults.bool(forKey: keyPrefix + "gamingBoost")
         // Default port 54322 (was 8888 in <=0.7.1; 8888 collides with jupyter/splunk/HP printers).
         // Existing users keep their saved value.
@@ -1437,15 +1441,15 @@ class DisplaySettings: ObservableObject {
         }
 
         autoFitPhone = true
-        matchMacScale = true
+        matchMacScale = false
         phoneOrientation = "auto"
         placementSide = "right"
         placementAlignment = "start"
         resolution = "1920x1200"
-        refreshRate = 120  // Default: highest FPS
+        refreshRate = 60
         hiDPI = false
         bitrate = 1000  // Default: 1000 Mbps
-        quality = "ultralow"  // Default: fastest encoding
+        quality = "high"
         gamingBoost = false
         port = 54322
         rotation = 0
@@ -1493,7 +1497,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             defer: false
         )
 
-        window.title = "HarmonyScreen"
+        window.title = "Harmony Side Screen"
         window.titlebarAppearsTransparent = true
         window.backgroundColor = .windowBackgroundColor
         window.isMovableByWindowBackground = true

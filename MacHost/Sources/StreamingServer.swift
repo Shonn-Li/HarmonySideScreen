@@ -33,6 +33,11 @@ private enum WireMessage {
     static let phoneOrientation: UInt8 = 15
     static let phonePlacementRequest: UInt8 = 16
     static let phonePlacementState: UInt8 = 17
+    // Payload-free requests are safely ignored by older hosts. Replies are opt-in only.
+    static let connectionDiagnostics: UInt8 = 18
+    static let usbLinkInfo: UInt8 = 19 // UInt32 negotiated Mbps; zero = unknown
+    static let usbTransferTest: UInt8 = 20 // response 21: UInt32 size + known payload
+
 }
 
 private extension NWEndpoint {
@@ -154,6 +159,8 @@ class StreamingServer {
     var onPhoneViewport: ((PhoneDisplayGeometry) -> Void)?
     var onPhonePlacement: ((PhonePlacement?) -> Void)?
     private var phoneSupportsPlacement = false
+    private var phoneSupportsDiagnostics = false
+    private let transferTestBusy = OSAllocatedUnfairLock(initialState: false)
     private var phoneSupportsOrientation = false
     var phoneOrientation: UInt8 = 0
     var onClientConnected: (() -> Void)?
@@ -350,6 +357,8 @@ class StreamingServer {
         connectionReady = false
         preparingConnection = false
         phoneSupportsPlacement = false
+        phoneSupportsDiagnostics = false
+        transferTestBusy.withLock { $0 = false }
         clientSupportsFrameMetadata = false
         clientIsAvcOnly = false
         clientDecodeLimits = nil
@@ -403,6 +412,32 @@ class StreamingServer {
             guard let self, self.phoneSupportsPlacement, let connection = self.connection else { return }
             connection.send(content: Data([WireMessage.phonePlacementState] + placement.payload),
                             completion: .contentProcessed { _ in })
+        }
+    }
+
+    private func sendUSBLinkInfo(to conn: NWConnection) {
+        var packet = Data([WireMessage.usbLinkInfo])
+        var speed = (conn.endpoint.isLoopback ? USBLinkDiagnostics.negotiatedMbps() : 0).bigEndian
+        withUnsafeBytes(of: &speed) { packet.append(contentsOf: $0) }
+        conn.send(content: packet, completion: .contentProcessed { _ in })
+    }
+
+    private func runUSBTransferTest(on conn: NWConnection) {
+        guard phoneSupportsDiagnostics, connectionReady, conn.endpoint.isLoopback else { return }
+        let accepted = transferTestBusy.withLock { busy -> Bool in
+            guard !busy else { return false }; busy = true; return true
+        }
+        guard accepted else { return }
+        // One bounded payload keeps control replies from interleaving with test bytes.
+        // Video pauses briefly; resume on an IDR because intervening P frames are omitted.
+        frameQueue.async { [weak self] in
+            guard let self, self.connection === conn, !self.isStopped else { return }
+            conn.send(content: USBLinkDiagnostics.testPacket(), completion: .contentProcessed { [weak self] error in
+                guard let self, self.connection === conn else { return }
+                self.waitingForSyncFrame = true
+                self.transferTestBusy.withLock { $0 = false }
+                if error == nil { self.onKeyframeRequested?(true) }
+            })
         }
     }
 
@@ -733,6 +768,13 @@ class StreamingServer {
     private func processInputBuffer(connection: NWConnection) {
         while let msgType = inputBuffer.first {
             switch msgType {
+            case WireMessage.connectionDiagnostics:
+                consumeInputBytes(1)
+                phoneSupportsDiagnostics = true
+                sendUSBLinkInfo(to: connection)
+            case WireMessage.usbTransferTest:
+                consumeInputBytes(1)
+                runUSBTransferTest(on: connection)
             case WireMessage.touchEvent:
                 // Touch event: 1 type + 1 pointerCount + N*(4x+4y) + 4 action.
                 // 1 finger: 14 bytes, 2 fingers: 22 bytes.
@@ -899,7 +941,7 @@ class StreamingServer {
     }
 
     func sendFrame(_ data: Data, timestamp: UInt64, isKeyframe: Bool = false) {
-        guard let connection = connection, !isStopped, connectionReady else { return }
+        guard let connection = connection, !isStopped, connectionReady, !transferTestBusy.withLock({ $0 }) else { return }
 
         // With short-GOP encoding, a fresh client must start on a keyframe —
         // sending P-frames before the first IDR would feed garbage to its decoder.
@@ -917,6 +959,7 @@ class StreamingServer {
         frameQueue.async { [weak self] in
             guard let self = self else { return }
 
+            guard self.connection === connection, !self.transferTestBusy.withLock({ $0 }) else { return }
             let packet = self.makeFramePacket(data, timestamp: timestamp, isKeyframe: isKeyframe)
 
             connection.send(content: packet, completion: .contentProcessed { error in

@@ -115,3 +115,26 @@ settings are changed.
 During automatic retries, the phone shows stable instructions and fixed Retry
 now / Pause reconnect controls. Connection attempts do not toggle the button
 labels or show a stale desktop as live. The display surface stays allocated.
+
+## Optional connection diagnostics (developer build, 2026-10-12)
+
+A native client opts in with payload-free type 18. Only then may the host send
+19 + UInt32 BE negotiated USB Mbps (0 = unavailable). Older hosts safely ignore
+18. Speed comes from IOUSBHostDevice's UsbLinkSpeed, and is unknown when HDC
+USB device selection is ambiguous. It is the negotiated device/cable/port link,
+not measured payload throughput or a promise about cable specifications.
+
+After receiving 19, the client may request a manual transfer test with type 20.
+The host responds with type 21 + UInt32 BE length (exactly 16 MiB) + test bytes.
+Byte i is UInt8(i * 73 + 19). The client checks every byte, rejects any other
+length, and measures first-payload-read through final-payload-verification on
+its monotonic clock. Missing/partial/corrupt data is never a successful result.
+This is a short synthetic Mac-to-phone HDC payload test, not a raw USB maximum
+or an extended cable reliability certification. No user files are transferred.
+
+The host pauses video sends for the single bounded test packet and resumes on
+a fresh keyframe; repeated in-flight requests are ignored. Control packets
+cannot interleave within a single packet. Clients without opt-in never receive
+new message types. The phone also measures compressed video bytes separately
+and timestamps its existing echoed ping to show round-trip time (including
+queueing, not capture-to-presentation latency).

@@ -9,3 +9,6 @@ export const viewport: (width: number, height: number, dpiX: number, dpiY: numbe
 export const orientation: () => number;
 export const placement: () => number;
 export const place: (side: number, alignment: number) => boolean;
+
+export const diagnostics: () => string;
+export const testConnection: () => boolean;

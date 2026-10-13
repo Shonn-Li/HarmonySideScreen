@@ -1,159 +1,87 @@
-# HarmonyScreen
+# Harmony Side Screen
 
-A free native HarmonyOS second-screen app for macOS, by [YouWo.ai](https://youwo.ai), maintained by Shonn Li. No subscription or account is required for USB streaming. Based on [SideScreen](https://github.com/tranvuongquocdat/SideScreen), with its MIT license and attribution preserved.
+**A free, open-source second screen for Mac → HarmonyOS over USB.**
+By [YouWo.ai](https://youwo.ai), maintained by Shonn Li. Formerly HarmonyScreen.
 
-**Status: developer preview. Signed native playback on Mate XT 2 is verified over HDC USB, including full-screen 3184×2232 video and recovery after a Mac stream restart. Public assets remain a Mac preview; the device-specific debug HAP is private. General distribution, broad device testing, touch/audio and Mac notarization remain incomplete.**
+[Releases](https://github.com/Shonn-Li/HarmonySideScreen/releases) · [Version history](docs/VERSION-HISTORY.md) · [Changelog](CHANGELOG.md) · [Protocol](docs/HDC-TRANSPORT.md)
 
-## What exists
+Connect an authorized Huawei phone, open the native receiver, and use it as an independent Mac desktop. The host creates a virtual display, captures and encodes it with hardware HEVC, and sends it through Huawei HDC USB forwarding. The native ArkTS/C++ receiver decodes onto the phone surface. No account or subscription is needed.
 
-- Mac virtual display and hardware HEVC encoding inherited from SideScreen.
-- HDC device discovery and reverse forwarding, replacing ADB for USB mode.
-- Separate app identity, preferences, and port (54322), so SideScreen can remain installed.
-- Native ArkTS/C++ client source using HarmonyOS AVCodec and an XComponent surface. No Android compatibility layer is required by this design.
-- Build/sign scripts and a real USB round-trip diagnostic.
+## Current preview: 0.1.8
 
-## Verified / not yet verified
+- Full-panel 3184 × 2232 playback tested on Mate XT 2; portrait and landscape viewport resizing.
+- Quiet reconnect, removal of an unused virtual display, and phone-side placement controls.
+- Tap the Huawei screen for controls. A small Settings button remains available when controls are hidden.
+- Independently show/hide live stream FPS and connection information; preferences survive receiver restarts.
+- View negotiated USB speed, actual video bitrate, round-trip time and frame resolution.
+- Run an opt-in 16 MiB transfer-and-byte-validation test to compare the complete cable/port/HDC path.
+- Native 2× HiDPI and high encoder quality are the defaults for new settings. Saved preferences remain intact.
 
-| Component | Result |
-|---|---|
-| Mac arm64 build | Builds; 59 Swift tests passed |
-| HDC on OpenHarmony 7.0.0.107 | 1 MiB exact USB round-trip passed |
-| Portable frame validation | Address/undefined-behavior sanitizer test passed |
-| Native HAP build | Release-mode arm64 HAP built with DevEco Studio 6.0.1.251 / SDK 6.0.1.112 (API 21); earlier API 24 build also passed |
-| Native HAP installation | DevEco-generated Huawei debug profile signed the HAP; installation on Mate XT 2 succeeded |
-| Actual host video | 60 HEVC frames independently decoded at 1920×1200, locally and through an HDC USB forward/reverse path |
-| Video decoded and displayed on Huawei | Verified on Mate XT 2 at 3184×2232, full-screen; Mac stream stop/start recovered automatically |
-| Touch, native Wi-Fi pairing, audio | Not enabled in the native preview |
-| Apple notarization | Not completed |
+**Developer preview, not an AppGallery release.** The public download is a Developer ID-signed Apple Silicon Mac DMG; it is not notarized. The installed Huawei debug HAP is restricted by a private provisioning profile and is **not** a public download. Build and sign the open-source receiver for your own device. General Huawei distribution and other device models remain unverified.
 
-## Mac
+## Sharp text and frame rate
+
+The physical panel, logical desktop and encoded frame size are separate.
+
+| Configuration on the tested unfolded phone | Logical desktop | Source pixels → encoded pixels | Tradeoff |
+|---|---:|---:|---|
+| Native 2× HiDPI | 1592 × 1116 | 3184 × 2232 → 3184 × 2232 | Preserves panel detail; text can be physically small |
+| Match Mac text size, tested Mac scale | 1060 × 742 | 2120 × 1484 → 3184 × 2232 | Larger text, but the source is enlarged and can look soft |
+| Native + application zoom | 1592 × 1116 | 3184 × 2232 → 3184 × 2232 | The application redraws larger text; does not resize every macOS menu |
+
+The tested Grok Bot window used 150% application zoom. This is not an automatic, system-wide 3× rendering solution. Merely encoding a frame as “3K” cannot restore detail missing from its source.
+
+Stream FPS counts decoder submissions, not actual panel refresh or end-to-end latency. Some tests exceeded 100 stream FPS while the panel reported 60 Hz. A 120 FPS request is not a verified sustained 120 Hz display claim. USB 5 Gbps is negotiated link capacity, not measured video usage. See the [dated measurements and limitations](docs/PERFORMANCE-2026-10-12.md).
+
+## Build and connect
+
+### Mac
+
+Requires macOS 13+, Xcode command-line build tools, and official Huawei HDC with its runtime dependencies.
 
 ```sh
+git clone https://github.com/Shonn-Li/HarmonySideScreen.git
+cd HarmonySideScreen
 scripts/package_harmony_mac.sh
 ```
 
-For Developer ID signing, set `SIGNING_IDENTITY` to your own available certificate name before running the script. The published preview DMG, when present, is signed by Shonn Li. Signing alone is not notarization.
+The output is `dist/Harmony Side Screen.app` and a versioned arm64 DMG. Set `SIGNING_IDENTITY` to your own certificate name for Developer ID signing; without it, the local build is ad-hoc signed. Existing bundle IDs and preference keys are preserved for upgrades.
 
-Install official Huawei Command Line Tools. Place `hdc` plus its runtime dependencies in a supported location (see `HDCBridge.swift`) or set `HARMONYSCREEN_HDC`. Connect one authorized Huawei device. Open HarmonyScreen, grant screen capture, select USB, and start the host. A tunnel-ready status is not proof of a client/video connection.
+Install official Huawei Command Line Tools. Place HDC in a location supported by `MacHost/Sources/HDCBridge.swift`, or set `HARMONYSCREEN_HDC`. Connect one phone with a data cable, unlock it and approve USB debugging. Open the Mac app, grant Screen Recording permission and start USB streaming. HDC readiness alone does not prove video playback.
 
-## HarmonyOS client
+### HarmonyOS
 
-`HarmonyClient` is an ArkTS Stage application with a native C++ surface decoder. It compiles against HarmonyOS 6.0.1 (API 21), with a minimum of HarmonyOS 5.0.1 (API 13). The target matches DevEco Studio 6.0.1 so opening the project does not fail SDK validation. Compilation is verified; this minimum is not a claim of tested device coverage. Configure your own app signing through Huawei's supported process; private signing configuration must stay outside Git.
+Open `HarmonyClient` in DevEco Studio and configure your own supported Huawei signing. The checked-in public profile has no signing credentials. The current build uses DevEco Studio 6.0.1.251 / SDK 6.0.1.112 (API 21), minimum API 13; the tested phone reports OpenHarmony 7.0.0.107 / API 26. The minimum API is not a promise of broad device coverage.
 
 ```sh
 scripts/build_harmony.sh
-```
-
-The script uses the official SDK, Node and Java bundled in `/Applications/DevEco-Studio.app`. Set `HARMONY_DEVECO_APP` for another installation path, or `HARMONY_SDK_TOOLS` to official command-line tools containing a matching API 21 SDK.
-
-This creates `HarmonyClient/entry/build/default/outputs/default/entry-default-unsigned.hap` in release mode. A retail Huawei phone requires a Huawei-issued application certificate and provisioning profile before installation. A Mac Developer ID certificate cannot sign a HarmonyOS app. See [Huawei's signing and build instructions](https://developer.huawei.com/consumer/en/doc/harmonyos-guides/ide-command-line-building-app).
-
-`scripts/sign_harmony.sh` accepts private signing paths through `HARMONY_KEYSTORE`, `HARMONY_CERTIFICATE`, `HARMONY_PROFILE`, and `HARMONY_PASSWORD_FILE`; the default key alias is `harmonyscreen`. Keep these inputs outside this repository. Its certificate-dependent execution is pending validation with an issued certificate; no self-signed or unsigned HAP is advertised as installable.
-
-For DevEco automatic signing, save the generated JSON build profile outside the repository, then restore the public profile with its empty `signingConfigs`. Build privately without putting signing inputs back into the tracked source:
-
-```sh
+# DevEco automatic-signing profile must be stored outside this repository:
 python3 scripts/build_harmony_signed.py \
   --profile /private/path/deveco-build-profile.private.json5 \
-  --output /private/path/HarmonyScreen-device-debug.hap
+  --output /private/path/HarmonySideScreen-device-debug.hap
 ```
 
-This route has produced a signed HAP using DevEco's generated credentials. It stages a temporary project, preserves existing output files, and leaves the public build profile unchanged. The debug HAP contains a device provisioning profile: keep it private, not in GitHub release assets. It is not a general AppGallery distribution package.
+The first command produces an unsigned release-mode HAP. A retail phone requires a Huawei-issued signing certificate and provisioning profile. The second command stages private signing in a temporary copy and refuses to overwrite an existing output. Never publish a device-specific debug HAP, private keys or provisioning profiles.
 
-The native client connects only to localhost:54322 through the HDC USB tunnel. It connects when opened, hides its overlay after video arrives, and retries interrupted streams while the page is visible. Tap the desktop to toggle controls; the back gesture also reveals hidden controls. Manual Disconnect stops automatic retries. This receiver remains display-only and does not send taps to the Mac.
+Open the receiver after installation. It connects to localhost:54322 through the HDC tunnel and retries while foregrounded unless explicitly disconnected. Native phone touches operate its controls; they do not remotely click Mac applications. Native wireless pairing, audio and remote Mac touch input are not enabled. A sleeping/locked phone may need to be unlocked and reopened.
 
-Verified unfolded Mate XT 2 setup: custom **1592×1116**, **HiDPI on**, **30 FPS**, zero rotation/flip. This produces **3184×2232** encoded pixels and fills the matching phone panel with Retina-sized desktop text. The native surface fits other aspect ratios without stretching. Automatic sizing and both orientations are now verified on Mate XT 2 (see below); other device models still need validation. Never advertise a device-specific debug package as generally installable on retail Huawei phones.
-
-## Tests
+## Validation and version records
 
 ```sh
+python3 scripts/check_harmony_version.py
 swift test --package-path MacHost
-clang++ -std=c++17 -fsanitize=address,undefined tests/wire_test.cpp -o /tmp/harmonyscreen-wire-test
-/tmp/harmonyscreen-wire-test
-python3 scripts/test_hdc_transport.py  # one authorized USB phone required
-python3 scripts/test_hdc_recovery.py   # running host + one phone; briefly drops its tunnel
-python3 scripts/test_host_stream.py    # running local host and ffprobe required
+clang++ -std=c++17 -fsanitize=address,undefined tests/wire_test.cpp -o /tmp/harmony-wire-test
+/tmp/harmony-wire-test
+clang++ -std=c++17 -fsanitize=address,undefined HarmonyClient/tests/transfer_test.cpp -o /tmp/harmony-transfer-test
+/tmp/harmony-transfer-test
 ```
 
-See [transport and protocol design](docs/HDC-TRANSPORT.md) and [release checklist](docs/RELEASE.md). The retained AndroidClient and upstream scripts are reference material, not a HarmonyOS build or release route.
+Device tests such as `scripts/test_hdc_recovery.py` intentionally interrupt the tunnel; run them only during a test session.
 
-## Attribution
+Every delivered version should have a source commit, immutable preview tag, configuration/evidence record and artifact checksums. Code-only history cannot reproduce external display preferences. See [version policy](docs/VERSIONING.md) and [0.1.8 record](docs/versions/0.1.8.json). Earlier same-day parameter experiments were not all separate releases; missing state is marked unknown.
 
-The Mac capture/encoder/server originated in SideScreen by Quoc Dat Tran and contributors, under MIT. New HDC integration and native HarmonyOS receiver work is copyright 2026 Shonn Li, also MIT. See LICENSE and NOTICE. This project is not affiliated with Huawei or Apple.
+## License and support
 
-### Automatic size and portrait (latest source)
+MIT. The Mac host originated in [SideScreen](https://github.com/tranvuongquocdat/SideScreen) by Quoc Dat Tran and contributors. The original license and attribution are preserved in LICENSE and NOTICE; new HDC integration and native HarmonyOS work is copyright 2026 Shonn Li. This project is not affiliated with Huawei or Apple.
 
-The Mac settings now offer **Fit desktop to Huawei automatically**, **Match Mac
-text size**, **Follow phone / Portrait / Landscape**, and side/edge alignment.
-Turn on auto-fit for a desktop that follows the receiver's usable panel. Matching
-Mac text size estimates physical scale from panel DPI and the Mac's current
-Displays setting; disable that option for native 2× Retina rendering. Follow
-phone respects HarmonyOS's rotation lock. Resizing briefly reconnects the stream.
-
-Verified on the connected Mate XT 2: full-panel 3184×2232 landscape and 2232×3184
-portrait, switching both ways with the same Mac display ID, and recalculating
-logical size after a Mac display-scale change. The iPad Sidecar display remained
-connected during these final tests. See [transport details](docs/HDC-TRANSPORT.md)
-for the size calculation and the macOS multi-virtual-display recovery limitation.
-
-### Live FPS and everyday connection
-
-Mac and Huawei 0.1.4 restore automatic rotation and connection recovery. Follow
-phone uses the orientation sensor even with the system rotation lock enabled;
-the Mac resizes the desktop after the new viewport arrives. A rotation can briefly
-reconnect video. Failed Mac startup/reconfiguration now shows a status message
-and retries automatically rather than waiting in a blocking error dialog.
-New installations start streaming when the Mac app opens by default. An existing
-explicitly disabled startup preference is preserved.
-
-Mac 0.1.5 keeps HDC USB available even when Wireless is selected or remembered
-at startup. The native Huawei 0.1.4 receiver does not need an update for this fix.
-
-Mac 0.1.6 waits without creating an unused monitor. An authenticated viewer
-connection creates the desktop and starts capture. Five seconds after the viewer
-disconnects, the desktop is removed and capture stops; the host keeps listening
-and repairing the USB tunnel so reopening the phone app can reconnect. Short
-reconnects retain the display identity. Clicking Stop also stops the listener.
-The 0.1.6 lifecycle fix also works with the native Huawei 0.1.4 receiver.
-
-Mac and Huawei 0.1.7 add connection health checks and phone-side placement. Tap
-the phone desktop to show **Left / Right / Above / Below** and change where it
-sits beside the Mac. While disconnected, instructions and **Retry now / Pause
-reconnect** stay steady while the app retries quietly. Returning from the
-background resumes connecting unless you explicitly paused it. A physical USB
-data connection and the existing debugging approval are still required.
-
-Tap the Huawei desktop to show the controls. **Stream FPS** measures successful
-video-decoder submissions to the phone display surface over the last second;
-it is not the physical panel refresh rate or a glass-to-glass latency measurement.
-Choose **Keep FPS visible** for a small persistent counter. The old total frame
-count remains in diagnostic logs. A still desktop can have a low or zero update
-rate without being disconnected. The Mac shows **Sending FPS**, which measures
-a different stage and can differ from the phone.
-
-After the first installation and USB-debugging authorization, leave the Mac host
-running and open the Huawei app. The host detects the authorized USB device,
-repairs the HDC tunnel after reconnection, and the foreground receiver retries.
-**Start streaming on launch** avoids pressing Start each time the Mac app opens.
-This is not yet zero-setup installation for a new customer: official HDC,
-permissions and a properly provisioned native client are still required. Native
-USB attach does not automatically launch the phone app. A sleeping or locked
-phone may need to be unlocked and the app reopened.
-
-HarmonyScreen is offered at **$0 under MIT**, with a small optional link to
-YouWo.ai in both apps. Opening that link leaves the receiver for the browser;
-return to HarmonyScreen to resume. Original SideScreen attribution is retained,
-and LICENSE/NOTICE are included in both application packages. General Huawei
-distribution signing and Apple notarization remain release blockers; see
-[release readiness](docs/RELEASE.md).
-
-### Optional support invitation (Mac 0.1.3)
-
-A quiet support invitation is implemented for the Mac app. It appears after
-each session with five minutes of use, when the user clicks Stop, and never
-during streaming. Not now, Escape or closing dismisses that session's request;
-the next qualifying session asks again. There is no permanent-dismissal option.
-All functionality stays free. The invitation remains disabled until a verified
-YouWo-owned one-time checkout is configured; no payment link is invented and
-no inherited upstream funding link is used. See [support setup](docs/SUPPORT.md).
-The support invitation is in the Mac host only.
+The app remains free. An optional Mac support invitation exists, but checkout stays disabled until a verified YouWo-owned payment destination is configured. See [support setup](docs/SUPPORT.md). Source availability does not imply AppGallery approval, notarization, or universal plug-and-play installation.

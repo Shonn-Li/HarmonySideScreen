@@ -1,0 +1,125 @@
+{
+  "product": "Harmony Side Screen",
+  "version": "0.1.8",
+  "date": "2026-10-12",
+  "timezone": "America/Los_Angeles",
+  "tag": "v0.1.8-preview.1",
+  "repository": "https://github.com/Shonn-Li/HarmonySideScreen",
+  "previousSourceCommit": "8bfc5e9a4c6e6cb61c4ce7ddfaa0a845b693630d",
+  "sourceIdentity": "The immutable release tag resolves the final source commit; this record does not hash itself.",
+  "recordedConfiguration": {
+    "mode": "HDC USB, independent Mac virtual display, hardware HEVC, native HarmonyOS decoder",
+    "panelPixels": [
+      3184,
+      2232
+    ],
+    "desktopLogicalPoints": [
+      1592,
+      1116
+    ],
+    "sourceBackingPixels": [
+      3184,
+      2232
+    ],
+    "encodedPixels": [
+      3184,
+      2232
+    ],
+    "hiDPIBackingScale": 2,
+    "autoFitPhone": true,
+    "matchMacTextSize": false,
+    "encoderQuality": "high",
+    "targetFPS": 120,
+    "configuredBitrateMbps": 100,
+    "orientation": "landscape",
+    "placement": {
+      "side": "right",
+      "alignment": "start"
+    },
+    "nativeOverlay": {
+      "showFPS": false,
+      "showConnectionInfo": false,
+      "persistentSettings": true
+    },
+    "grokBotZoom": {
+      "factor": 1.5,
+      "scope": "Main application content only",
+      "evidence": "Set with the application's reset and five 0.1-step zoom shortcuts before 0.1.8; persistence across a Grok Bot restart is unverified."
+    }
+  },
+  "newSettingsDefaults": {
+    "autoFitPhone": true,
+    "matchMacTextSize": false,
+    "encoderQuality": "high",
+    "targetFPS": 60,
+    "existingExplicitPreferencesPreserved": true
+  },
+  "validation": {
+    "swiftTests": {
+      "passed": 75,
+      "failures": 0
+    },
+    "portableSanitizerTests": [
+      "wire",
+      "frame_rate",
+      "connection_health",
+      "transfer_test"
+    ],
+    "signedMacBuild": true,
+    "privateSignedHarmonyBuild": true,
+    "installedMacVersion": "0.1.8",
+    "installedHarmonyVersion": "0.1.8",
+    "installedHarmonyVersionCode": 108,
+    "testedPhone": "Mate XT 2",
+    "testedPhoneReportedOS": "OpenHarmony 7.0.0.107 / API 26",
+    "deviceEvidence": [
+      "Automatic HDC reconnect after the update",
+      "New Harmony Side Screen label",
+      "Native 3184 x 2232 settings and captured source/received images",
+      "Settings entry and independent FPS/connection toggles; earlier same-source control build retained choices across restart"
+    ],
+    "nativeStripeTest": {
+      "sample": "Alternating one-pixel black/white luminance lines",
+      "sourceMeans": [
+        0,
+        255
+      ],
+      "receivedJpegMeans": [
+        0.25,
+        254
+      ],
+      "scope": "One static sample, not lossless color or actual panel cadence"
+    },
+    "latestLink": {
+      "negotiatedMbps": 480,
+      "evidence": "Receiver plus live IOUSBHostDevice UsbLinkSpeed",
+      "throughputMeasuredInThisBuild": null
+    },
+    "historicalSameDaySamples": {
+      "negotiatedMbps": 5000,
+      "hdcPayloadMbps": 367,
+      "decodedSubmissionFPS": "samples above 100",
+      "scope": "Earlier Oct 12 configuration; not a controlled A/B comparison or a measurement of this final build"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "HarmonySideScreen-0.1.8-mac-arm64.dmg",
+      "sha256": "22195b65b32ec30d9751e5ef5f3682932b1f00f5e25bb68c1a8f346d8397c94b",
+      "distribution": "Public preview; Developer ID signed, not notarized"
+    },
+    {
+      "name": "HarmonySideScreen-0.1.8-device-debug.hap",
+      "sha256": "fcd5bf2376404db46633154106505d51d410ecc4314f758755c55fb86ed7dc70",
+      "distribution": "Private device-specific debug build; never upload as a public release asset"
+    }
+  ],
+  "limitations": [
+    "No verified general 3x macOS desktop backing mode",
+    "Application zoom does not resize all macOS UI",
+    "Sustained panel 120 Hz and end-to-end latency not established",
+    "Some historical parameter trials shared version 0.1.7 and were not separately tagged",
+    "No AppGallery publication or general Huawei distribution signing",
+    "No native Mac touch input, wireless pairing or audio"
+  ]
+}
